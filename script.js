@@ -34,18 +34,20 @@ class Map {
 		let objects = [data[3].split(","), data[4].split(","), data[5].split(",")];
 		let names = ["coin", "cp", "lava"];
 		for (let i = 0; i < objects.length; i++) {
-			for (let j = 0; j < objects[i].length; j++) {
-				let pos = objects[i][j].split(".");
-				// push in [name, id]
-				this.objects[parseInt(pos[1])][parseInt(pos[0])].push([names[i], j]);
-				if (names[i] == "coins") {
-					this.totalCoins++;
-				}
-				if (names[i] == "cp") {
-					if (this.totalCp == 0) {
-						this.firstCp = [parseInt(pos[0]), parseInt(pos[1])];
+			if (objects[i][0].length != 0) { // make sure there are items of this type
+				for (let j = 0; j < objects[i].length; j++) {
+					let pos = objects[i][j].split(".");
+					// push in [name, id]
+					this.objects[parseInt(pos[1])][parseInt(pos[0])].push([names[i], j]);
+					if (names[i] == "coin") {
+						this.totalCoins++;
 					}
-					this.totalCp++;
+					if (names[i] == "cp") {
+						if (this.totalCp == 0) {
+							this.firstCp = [parseInt(pos[0]), parseInt(pos[1])];
+						}
+						this.totalCp++;
+					}
 				}
 			}
 		}
@@ -201,7 +203,7 @@ class Player {
 		this.dx -= dxy[0];
 		this.dy -= dxy[1];
 		
-		let v = [0, 0];
+		let v = [0, 0]; // movement vector
 		if (pressed["ArrowLeft"]) {
 			v[0] -= 1;
 		}
@@ -240,7 +242,7 @@ class Player {
 				for (let i = 0; i < map.objects[y][x].length; i++) {
 					let o = map.objects[y][x][i];
 					if (o[0] == "coin") {
-						if (eq(pos, [x, y])) {
+						if (eq(pos, [x, y]) && !this.coins.includes(o[1])) {
 							this.coins.push(o[1]);
 						}
 					} else if (o[0] == "cp") {
@@ -248,6 +250,7 @@ class Player {
 							if (o[1] == map.totalCp - 1) {
 								// end checkpoint: requires all coins to finish the level
 								if (this.coins.length == map.totalCoins) {
+									console.log("u win ez");
 									clearInterval(interval);
 									return;
 								}
