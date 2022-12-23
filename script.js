@@ -1,42 +1,60 @@
 class Map {
-	constructor(grid, coins, cp, lava) {
-		grid = grid.split(";");
-		this.w = parseInt(grid[0]);
-		this.h = parseInt(grid[1]);
-		let offset = parseInt(grid[2]);
-		this.mult = parseFloat(grid[3]); // slopes force multiplier
+	constructor(data) {
+		// width; height; slope multiplier; coins; checkpoints; lava; level data
+		data = data.split(";");
+		let mult = parseFloat(data[2]); // slopes force multiplier
+		this.min = this.max = parseInt(data[6][0])*mult;
+		this.terrain = [];
+		this.objects = [];
 		
-		this.coins = coins;
-		this.cp = cp;
-		this.lava = lava;
-		
-		this.min = this.max = parseInt(grid[4][0]);
-		this.grid = [];
-		let value;
-		for (let i = 0; i < this.w * this.h; i++) {
-			value = parseInt(grid[4][i]);
-			if (this.min > value) {
-				this.min = value;
+		// generate terrain
+		let i = 0;
+		for (let y = 0; y < parseInt(data[1]); y++) {
+			this.terrain.push([]);
+			this.objects.push([]);
+			for (let x = 0; x < parseInt(data[0]); x++) {
+				let value = parseInt(data[6][i])*mult;
+				if (this.min > value) {
+					this.min = value;
+				}
+				if (this.max < value) {
+					this.max = value;
+				}
+				this.terrain[this.terrain.length - 1].push(value);
+				this.objects[this.objects.length - 1].push([]);
+				i++;
 			}
-			if (this.max < value) {
-				this.max = value;
-			}
-			this.grid.push(value);
 		}
-		// add invisible blocks for slope calculation
-		for (let i = 0; i < this.w; i++) {
-			this.grid.push(this.grid[this.w + i]);
-		}
-		this.grid.push(this.grid[this.grid.length - 1]);
+		this.w = this.terrain[0].length;
+		this.h = this.terrain.length;
 		
-		this.min -= offset;
-		this.max -= offset;
+		// add objects
+		this.totalCoins = 0;
+		this.totalCp = 0;
+		let objects = [data[3].split(","), data[4].split(","), data[5].split(",")];
+		let names = ["coin", "cp", "lava"];
+		for (let i = 0; i < objects.length; i++) {
+			for (let j = 0; j < objects[i].length; j++) {
+				let pos = objects[i][j].split(".");
+				// push in [name, id]
+				this.objects[parseInt(pos[1])][parseInt(pos[0])].push([names[i], j]);
+				if (names[i] == "coins") {
+					this.totalCoins++;
+				}
+				if (names[i] == "cp") {
+					if (this.totalCp == 0) {
+						this.firstCp = [parseInt(pos[0]), parseInt(pos[1])];
+					}
+					this.totalCp++;
+				}
+			}
+		}
 		
 		this.createImages();
 	}
 	
 	createImages() {
-		let names = ["0000", "0001", "0010", "0011", "0100", "0101", "0111", "1000", "1010", "1011", "1100", "1101", "1110", "coin", "cpInactive", "cpActive", "lava"];
+		let names = ["0000", "0001", "0010", "0011", "0100", "0101", "0111", "1000", "1010", "1011", "1100", "1101", "1110", "coin", "cpInactive", "cpActive", "lava", "error"];
 		let img;
 		this.images = {};
 		for (let i = 0; i < names.length; i++) {
@@ -48,110 +66,66 @@ class Map {
 	
 	draw() {
 		let o, points, min, max, name;
-		for (let X = 0; X < this.w; X++) {
-			for (let Y = 0; Y < this.h; Y++) {
-				o = this.getObject(X, Y);
-				if (o[0] == 3) {
-					// draw lava
-					/* ctx.fillStyle = "rgba(255, G, 0)".replace("G", 63 + 63*Math.sin(Date.now()/1000));
-					ctx.fillRect(X*50, Y*50, 50, 50); */
-					ctx.drawImage(this.images["lava"], X * 50, Y * 50);
+		for (let x = 0; x < this.w; x++) {
+			for (let y = 0; y < this.h; y++) {
+				// draw ground
+				points = this.getPoints(x, y);
+				if (points[0] == points[1] && points[0] == points[2] && points[0] == points[3]) {
+					ctx.drawImage(this.images["0000"], x * 50, y * 50);
 				} else {
-					// draw ground
-					points = []
-					let x, y;
+					min = Math.min(points[0], points[1], points[2], points[3]);
+					max = Math.max(points[0], points[1], points[2], points[3]);
+					name = "";
 					for (let i = 0; i < 4; i++) {
-						if (X == this.w - 1) {
-							x = this.w - 1;
-						} else {
-							x = X + i%2;
-						}
-						if (Y == this.h - 1) {
-							y = this.h - 1;
-						} else {
-							y = Y + parseInt(i/2);
-						}
-						points.push(this.grid[x + this.w * y]);
+						name += Math.round((points[i]-min) / (max-min));
 					}
-					if (points[0] == points[1] && points[0] == points[2] && points[0] == points[3]) {
-						/* ctx.fillStyle = "rgb(x, x, x)".replaceAll("x", 255 * (points[0]-this.min)/(this.max-this.min));
-						ctx.fillRect(X*50, Y*50, 50, 50); */
-						ctx.drawImage(this.images["0000"], X * 50, Y * 50);
+					if (this.images[name] == undefined) {
+						ctx.drawImage(this.images["error"], x * 50, y * 50);
 					} else {
-						/* let data = new Uint8ClampedArray(10000); // 50*50 rgba pixels
-						for (let x = 0; x < 50; x++) {
-							for (let y = 0; y < 50; y++) {
-								let a = points[0] + (points[1]-points[0]) * x / 50;
-								let b = points[2] + (points[3]-points[2]) * x / 50;
-								let c = 255 * (a + (b-a) * y / 50 - this.min) / (this.max-this.min);
-								data[x*4 + y*200] = c;
-								data[x*4 + y*200 + 1] = c;
-								data[x*4 + y*200 + 2] = c;
-								data[x*4 + y*200 + 3] = 255;
-							}
-						}
-						ctx.putImageData(new ImageData(data, 50, 50), X * 50, Y * 50); */
-						min = Math.min(points[0], points[1], points[2], points[3]);
-						max = Math.max(points[0], points[1], points[2], points[3]);
-						name = "";
-						for (let i = 0; i < 4; i++) {
-							name += Math.round((points[i]-min) / (max-min));
-						}
-						ctx.drawImage(this.images[name], X * 50, Y * 50);
+						ctx.drawImage(this.images[name], x * 50, y * 50);
 					}
-
-					if (o[0] == 1) {
-						// draw coin
-						/* ctx.strokeStyle = "#cc0";
-						ctx.fillStyle = "yellow";
-						ctx.beginPath();
-						ctx.arc(X*50 + 25, Y*50 + 25, 10, 0, 2 * Math.PI);
-						ctx.fill();
-						ctx.moveTo(X*50 + 25, Y*50 + 20);
-						ctx.lineTo(X*50 + 25, Y*50 + 30);
-						ctx.stroke(); */
-						ctx.drawImage(this.images["coin"], X * 50, Y * 50);
-					} else if (o[0] == 2) {
+				}
+				
+				// draw objects
+				for (let i = 0; i < this.objects[y][x].length; i++) {
+					o = this.objects[y][x][i];
+					if (o[0] == "coin") {
+						ctx.drawImage(this.images["coin"], x * 50, y * 50);
+					} else if (o[0] == "cp") {
 						// draw checkpoint
 						if (player.cpId < o[1]) {
-							ctx.drawImage(this.images["cpInactive"], X * 50, Y * 50);
+							ctx.drawImage(this.images["cpInactive"], x * 50, y * 50);
 						} else {
-							ctx.drawImage(this.images["cpActive"], X * 50, Y * 50);
+							ctx.drawImage(this.images["cpActive"], x * 50, y * 50);
 						}
+					} else if (o[0] == "lava") {
+						ctx.drawImage(this.images["lava"], x * 50, y * 50);
 					}
 				}
 			}
 		}
 	}
 	
-	getObject(x, y) {
-		// 0 = none, 1 = coin, 2 = cp, 3 = lava
-		for (let i = 0; i < this.coins.length; i++) {
-			if (eq(this.coins[i], [x, y]) && !player.coins.includes(i)) {
-				return [1, i];
-			}
+	getPoints(x, y) {
+		let x_, y_;
+		if (x == this.w - 1) {
+			x_ = x;
+		} else {
+			x_ = x + 1;
 		}
-		for (let i = 0; i < this.cp.length; i++) {
-			if (eq(this.cp[i], [x, y])) {
-				return [2, i];
-			}
+		if (y == this.h - 1) {
+			y_ = y;
+		} else {
+			y_ = y + 1;
 		}
-		for (let i = 0; i < this.lava.length; i++) {
-			if (eq(this.lava[i], [x, y])) {
-				return [3, i];
-			}
-		}
-		return [0, -1];
+		return [this.terrain[y][x], this.terrain[y][x_], this.terrain[y_][x], this.terrain[y_][x_]];
 	}
 	
 	slope(x, y) {
 		if (Math.abs(x%50 - 25) > 20 && Math.abs(y%50 - 25) > 20) {
 			return [0, 0];
 		}
-		let points = [];
-		for (let i = 0; i < 4; i++) {
-			points.push(this.grid[parseInt(x/50 + i%2 + (parseInt(y/50) + parseInt(i/2)) * this.w)] * this.mult);
-		}
+		let points = this.getPoints(parseInt(x / 50), parseInt(y / 50));
 		let dx0 = points[1]-points[0];
 		let dx1 = points[3]-points[2];
 		let dy0 = points[2]-points[0];
@@ -162,7 +136,7 @@ class Map {
 
 class Player {
 	constructor() {
-		this.cp = map.cp[0];
+		this.cp = map.firstCp;
 		this.cpId = 0;
 		this.coinsSave = []; // coins picked up last checkpoint
 		this.respawn();
@@ -176,7 +150,8 @@ class Player {
 		this.coins = [...this.coinsSave];
 	}
 	
-	collideElement(x, y, size, shape) {
+	collideObject(x, y, size, shape) {
+		// first, check if in range
 		let inX, inY;
 		if (shape == "rect") {
 			inX = (this.x + 16 >= x) && (this.x - 16 <= x + size[0]);
@@ -185,8 +160,9 @@ class Player {
 			inX = (this.x + 16 >= x - size) && (this.x - 16 <= x + size);
 			inY = (this.y + 16 >= y - size) && (this.y - 16 <= y + size);
 		}
+		
+		// then, more accurate collision detection
 		if (inX && inY) {
-			// more accurate collision detection
 			if (shape == "rect") {
 				let dx = Math.abs(this.x - (x + size[0]/2));
 				let dy = Math.abs(this.y - (y + size[1]/2));
@@ -256,36 +232,36 @@ class Player {
 	interact() {
 		let pos = [parseInt(this.x/50), parseInt(this.y/50)];
 		
-		// coins
-		for (let i = 0; i < map.coins.length; i++) {
-			if (eq(pos, map.coins[i]) && !this.coins.includes(i)) {
-				this.coins.push(i);
-			}
-		}
-		
-		// checkpoints
-		for (let i = 0; i < map.cp.length; i++) {
-			if (eq(pos, map.cp[i])) {
-				if (this.cpId < i) {
-					if (i == map.cp.length - 1) {
-						// end checkpoint: requires all coins to finish the level
-						if (this.coins.length == map.coins.length) {
-							clearInterval(interval);
+		// check collision with every object in the map
+		for (let x = 0; x < map.w; x++) {
+			for (let y = 0; y < map.h; y++) {
+				for (let i = 0; i < map.objects[y][x].length; i++) {
+					let o = map.objects[y][x][i];
+					if (o[0] == "coin") {
+						if (eq(pos, [x, y])) {
+							this.coins.push(o[1]);
 						}
-					} else {
-						this.cpId = i;
-						this.cp = map.cp[i];
-						this.coinsSave = [...this.coins];
+					} else if (o[0] == "cp") {
+						if (eq(pos, [x, y]) && this.cpId < o[1]) {
+							if (o[1] == map.totalCp - 1) {
+								// end checkpoint: requires all coins to finish the level
+								if (this.coins.length == map.totalCoins) {
+									clearInterval(interval);
+									return;
+								}
+							} else {
+								this.cpId = o[1];
+								this.cp = map.cp[o[1]];
+								this.coinsSave = [...this.coins];
+							}
+						}
+					} else if (o[0] == "lava") {
+						if (this.collideObject(x * 50, y * 50, [50, 50], "rect")) {
+							this.respawn();
+							return;
+						}
 					}
 				}
-			}
-		}
-		
-		// lava: more accurate collision detection
-		for (let i = 0; i < map.lava.length; i++) {
-			if (this.collideElement(map.lava[i][0] * 50, map.lava[i][1] * 50, [50, 50], "rect")) {
-				this.respawn();
-				return;
 			}
 		}
 	}
@@ -314,11 +290,9 @@ function eq(l1, l2) {
 }
 
 function init() {
-	let grid = "17;12;1;0.65;111111111111111111111222222111111111222222221111111112222332211111111122223322111111111222222221111111112222211111111111111111111111111111111111110000011100111000000000111000111000000111111111111111111111";
-	let coins = [[1, 9], [2, 2], [2, 3], [13, 8]];
-	let cp = [[10, 8], [14, 1], [6, 3]];
-	let lava = [[5, 1], [6, 1], [8, 3]];
-	map = new Map(grid, coins, cp, lava);
+	// width; height; slope multiplier; coins; checkpoints; lava; level data
+	let data = "17;12;0.65;1.9,2.2,2.3,13.8;10.8,14.1,6.3;5.1,6.1,8.3;111111111111111111111222222111111111222222221111111112222332211111111122223322111111111222222221111111112222211111111111111111111111111111111111110000011100111000000000111000111000000111111111111111111111";
+	map = new Map(data);
 	player = new Player();
 	initCanvas();
 }
