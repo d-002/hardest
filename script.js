@@ -90,7 +90,9 @@ class Map {
 				for (let i = 0; i < this.objects[y][x].length; i++) {
 					o = this.objects[y][x][i];
 					if (o[0] == "coin") {
-						ctx.drawImage(this.images["coin"], x * 50, y * 50);
+						if (!player.coins.includes(o[1])) {
+							ctx.drawImage(this.images["coin"], x * 50, y * 50);
+						}
 					} else if (o[0] == "cp") {
 						// draw checkpoint
 						if (player.cpId < o[1]) {
@@ -251,7 +253,7 @@ class Player {
 								}
 							} else {
 								this.cpId = o[1];
-								this.cp = map.cp[o[1]];
+								this.cp = o[0];
 								this.coinsSave = [...this.coins];
 							}
 						}
