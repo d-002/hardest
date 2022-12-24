@@ -256,7 +256,7 @@ class Player {
 								}
 							} else {
 								this.cpId = o[1];
-								this.cp = o[0];
+								this.cp = [x, y];
 								this.coinsSave = [...this.coins];
 							}
 						}
