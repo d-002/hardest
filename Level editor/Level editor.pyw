@@ -195,7 +195,7 @@ def export():
 
     obj = ';'.join([','.join(['%d.%d'%(x, y) for x, y in l]) for l in objects])
     data = ''.join([''.join([str(x) for x in line]) for line in terrain])
-    data = '%d;%d;%d;%s;%s' %(W, H, mult, obj, data)
+    data = '%d;%d;%s;%s;%s' %(W, H, mult, obj, data)
 
     if remove:
         objects[1].pop() # remove the added checkpoint
