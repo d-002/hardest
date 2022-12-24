@@ -2,12 +2,12 @@ import pyperclip
 import pygame
 from pygame.locals import *
 from pygame.math import Vector2
-from math import ceil, sqrt
+from math import ceil, sqrt, cos
 
 class Player:
     def __init__(self):
-        self.x = 25*W
-        self.y = 25*H
+        self.x = W*25
+        self.y = H*25
         self.dx = self.dy = 0
         self.speed = 0.5
 
@@ -27,8 +27,8 @@ class Player:
 
     def move(self):
         dx, dy = self.slope()
-        self.dx -= dx
-        self.dy -= dy
+        self.dx -= dx*mult
+        self.dy -= dy*mult
 
         v = Vector2() # movement vector
         pressed = pygame.key.get_pressed()
@@ -55,26 +55,68 @@ class Player:
         pygame.draw.circle(screen, (0, 0, 255), (self.x + 52, self.y), 16, 2)
         pygame.draw.circle(screen, (0, min(int(speed*38), 255), 255), (self.x + 52, self.y), 15)
 
+class Inputbox:
+    def __init__(self, x, y, value, text, action):
+        self.x = x
+        self.y = y
+        self.text = text
+        self.action = action
+        self.value = str(value)
+
+        self.active = 0
+
+    def update(self, events):
+        text = font.render(self.text, 1, white)
+        w = text.get_width() + 5
+        rect = Rect((self.x+w, self.y), (52-w, 16))
+
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                if rect.collidepoint(event.pos):
+                    self.active = True
+                else:
+                    self.active = False
+            elif self.active and event.type == KEYDOWN:
+                if event.unicode in '0123456789-.':
+                    self.value += event.unicode
+                elif event.key == K_BACKSPACE:
+                    self.value = self.value[:-1]
+                elif event.key in [K_RETURN, K_KP_ENTER]:
+                    self.action(float(self.value))
+                    self.active = False
+
+        value = self.value
+        if self.active and cos(pygame.time.get_ticks()/100) > 0:
+            value += '_'
+        screen.blit(text, (self.x, self.y))
+        pygame.draw.rect(screen, grey, rect)
+        screen.blit(font.render(value, 1, white), (self.x+w, self.y))
+
 def round_(n):
     if n%1 < 0.5:
         return int(n)
     return int(n)+1
 
-def resize(w, h):
-    global W, H, SCREENW, SCREENH, terrain, screen
-    W = max(w, 1)
-    H = max(h, 1)
+def resize(w, h, firstTime=False):
+    global W, H, SCREENW, SCREENH, terrain, objects, screen
+    W = int(min(max(w, 1), 30))
+    H = int(min(max(h, 1), 30))
+
+    if not firstTime: # put the player in the center of the terrain
+        player.x = W*25
+        player.y = H*25
 
     terrain = []
     for y in range(H):
         terrain.append([])
         for x in range(W):
             terrain[-1].append(0)
+    objects = [[], [], []] # corresponding to all object lists, in the order of menu
 
     pygame.display.quit()
     pygame.display.init()
     SCREENW = W*50 + 52
-    SCREENH = max(H*50, (52*len(menu) + 204))
+    SCREENH = max(H*50, (52*len(menu) + 256))
     screen = pygame.display.set_mode((SCREENW, SCREENH))
 
 def show(msg):
@@ -102,6 +144,13 @@ Select a menu item on the left to place it in the main area in the middle.
 When the first item is selected, you can use left and right click to raise or lower the ground.
 The Export button will copy something to your clipboard.
 Just paste this code on Discord for me to review your level.
+The debug button allows you do see the terrain height and the checkpoints order.
+
+Inputs at the bottom:
+- W sets the width
+- H sets the height
+- * sets the slope strength multiplier
+Warning: resizing loses all your progress!
 
 You can press the middle mouse button to move the player to the mouse position.
 You can also move the player like in game with the arrows.
@@ -127,11 +176,15 @@ def get_points(x, y):
         y_ = y+1
     return [terrain[y][x], terrain[y][x_], terrain[y_][x], terrain[y_][x_]]
 
+def change_mult(m):
+    global mult
+    mult = m
+
 def export():
     # print and copy to clipboard in a format readable by the js file
 
     if len(objects[1]) == 0:
-        show('Your level needs at least one checkpoint.')
+        show('Duh\nYour level needs at least one checkpoint.')
         return
     if len(objects[1]) == 1:
         # add another checkpoint if start = finish
@@ -155,6 +208,9 @@ def draw_ui(events):
     def erase(): # select eraser
         global selected
         selected = len(menu)
+    def debug():
+        global show_debug
+        show_debug = not show_debug
 
     click = None
     for event in events:
@@ -171,13 +227,13 @@ def draw_ui(events):
             selected = i
 
     y = i*52
-    for text, action in [('Erase', erase), ('Export', export), ('Help', show_help)]:
+    for text, action in [('Erase', erase), ('Export', export), ('Debug', debug), ('Help', show_help)]:
         text = font.render(text, 1, white)
         w, h = text.get_size()
         screen.blit(text, (26 - w//2, y + 26 - h//2))
+
         if click is not None and y <= click < y+52:
             action()
-
         y += 52
 
 def draw_map():
@@ -203,15 +259,15 @@ def draw_map():
             x, y = objects[i][j]
             name = menu[i+1]
             screen.blit(images[name], (x*50 + 52, y*50))
-            if show_debug and name not in ['coin']: # show id of indexed objects
-                text = font.render(str(j), 1, black)
+            if show_debug and name in ['cpInactive']: # show id of indexed objects
+                text = font.render(str(j), 1, white)
                 w, h = text.get_size()
                 screen.blit(text, (x*50 + 77 - w//2, y*50 + 25 - h//2))
 
     if show_debug: # show terrain height
         i = 0
         for value in sum(terrain, []):
-            screen.blit(font.render(str(value), 1, black), (i%W*50 + 52, i//W*50))
+            screen.blit(font.render(str(value), 1, white), (i%W*50 + 52, i//W*50))
             i += 1
 
 def fix_height():
@@ -236,7 +292,7 @@ def edit_map(events):
 
     if selected == len(menu): # erase tiles objects when mouse pressed
         if pygame.mouse.get_pressed()[0]:
-            for name in objects:
+            for obj in objects:
                 if (x, y) in obj:
                     obj.remove((x, y))
     elif selected == 0: # edit map when mouse clicked
@@ -261,16 +317,19 @@ font = pygame.font.SysFont('consolas', 16)
 clock = pygame.time.Clock()
 
 white = (255, 255, 255)
+grey = (127, 127, 127)
 black = (0, 0, 0)
 get_tex()
 menu = ['0000', 'coin', 'cpInactive', 'lava']
-objects = [[], [], []] # corresponding to all object lists, in the order of menu
 selected = 0
-show_debug = False
 mult = 1 # slope strength multiplier
+show_debug = False
 
-resize(17, 12)
+resize(17, 12, True)
 player = Player()
+inputs = [Inputbox(0, 416, W, 'W', lambda W: resize(W, H)),
+          Inputbox(0, 432, H, 'H', lambda H: resize(W, H)),
+          Inputbox(0, 448, mult, '*', change_mult)]
 
 while True:
     events = pygame.event.get()
@@ -289,6 +348,8 @@ while True:
     draw_ui(events)
     edit_map(events)
     player.update()
+    for box in inputs:
+        box.update(events)
 
     pygame.display.flip()
     clock.tick(60)
