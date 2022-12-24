@@ -145,12 +145,12 @@ class Player {
 		this.coinsSave = []; // coins picked up last checkpoint
 		this.respawn();
 		this.speed = 0.5;
-		this.dx = this.dy = 0;
 	}
 	
 	respawn() {
 		this.x = this.cp[0]*50 + 25;
 		this.y = this.cp[1]*50 + 25;
+		this.dx = this.dy = 0;
 		this.coins = [...this.coinsSave];
 	}
 	
