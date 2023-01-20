@@ -263,6 +263,7 @@ class Player {
 					} else if (o[0] == "lava") {
 						if (this.collideObject(x * 50, y * 50, [50, 50], "rect")) {
 							this.respawn();
+							deathCount += 1;
 							return;
 						}
 					}
@@ -341,4 +342,5 @@ let ctx, W, H;
 let map, player, levels, level, interval;
 let pressed = {};
 let timePassed = 0;
+let deathCount = 0;
 let prevTime = Date.now();
