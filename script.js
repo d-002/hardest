@@ -1,3 +1,7 @@
+let messages = ["boo loser", "you don't know what you're doing", "don't even try", "noobs not allowed: go back"];
+let levels = ["17;12;0.365;1.9,2.2,2.3,13.8;10.8,14.1,6.3;5.1,6.1,8.3;111111111111111111111222222111111111222222221111111112222332211111111122223322111111111222222221111111112222211111111111111111111111111111111111110000011100111000000000111000111000000111111111111111111111",
+"15;12;0.3;0.4,8.4,5.5,13.3,14.11;2.10,7.5,1.10;3.9,3.8,3.7,3.5,2.5,0.1,1.1,2.1,3.1,4.1,5.1,6.1,6.0,5.0,4.0,3.0,2.0,1.0,0.0,0.6,1.6,7.8,6.8,7.11,6.11,9.6,8.6,7.6,9.5,9.4,9.3,9.2,7.2,7.3,7.4,8.0,9.0,10.0,11.0,13.0,13.1,14.3,14.10,12.11,13.9,11.10,9.9,9.11;222222222222222222222222111112222222222222222444443321222233444443322222233332223322122222222223322222222222222222222222222222000222222222222000333333222222000333333333332000333333"];
+
 class Map {
 	constructor(data) {
 		// width; height; slope multiplier; coins; checkpoints; lava; level data
@@ -251,7 +255,9 @@ class Player {
 								// end checkpoint: requires all coins to finish the level
 								if (this.coins.length == map.totalCoins) {
 									console.log("u win ez");
+									level += 1;
 									clearInterval(interval);
+									window.setTimeout(newLevel, 0); // next level
 									return;
 								}
 							} else {
@@ -296,12 +302,26 @@ function eq(l1, l2) {
 }
 
 function init() {
-	// width; height; slope multiplier; coins; checkpoints; lava; level data
-	let data = "17;12;0.65;1.9,2.2,2.3,13.8;10.8,14.1,6.3;5.1,6.1,8.3;111111111111111111111222222111111111222222221111111112222332211111111122223322111111111222222221111111112222211111111111111111111111111111111111110000011100111000000000111000111000000111111111111111111111";
-	data = "15;12;0.3;0.4,8.4,5.5,13.3,14.11;2.10,7.5,1.10;3.9,3.8,3.7,3.5,2.5,0.1,1.1,2.1,3.1,4.1,5.1,6.1,6.0,5.0,4.0,3.0,2.0,1.0,0.0,0.6,1.6,7.8,6.8,7.11,6.11,9.6,8.6,7.6,9.5,9.4,9.3,9.2,7.2,7.3,7.4,8.0,9.0,10.0,11.0,13.0,13.1,14.3,14.10,12.11,13.9,11.10,9.9,9.11;222222222222222222222222111112222222222222222444443321222233444443322222233332223322122222222223322222222222222222222222222222000222222222222000333333222222000333333333332000333333";
-	map = new Map(data);
-	player = new Player();
-	initCanvas();
+	msgDiv = document.getElementById("message");
+	newLevel();
+}
+
+function newLevel() {
+	// show a message on screen
+	msgDiv.children[0].innerHTML = messages[parseInt(Math.random()*messages.length)];
+	msgDiv.className = "";
+
+	window.setTimeout(() => {
+		msgDiv.className = "animation";
+
+		if (level == levels.length) {
+			console.log("End of the game lul");
+		} else {
+			map = new Map(levels[level]);
+			player = new Player();
+			initCanvas();
+		}
+	}, 1000);
 }
 
 function initCanvas() {
@@ -334,13 +354,13 @@ function mainLoop() {
 	timePassed = (Date.now()-prevTime) / 1000;
 }
 
-//window.addEventListener("resize", initCanvas);
 window.onkeyup = (e) => {pressed[e.key] = false};
 window.onkeydown = (e) => {pressed[e.key] = true};
 
-let ctx, W, H;
-let map, player, levels, level, interval;
+let ctx, W, H, msgDiv;
+let map, player, interval;
 let pressed = {};
+let level = 0;
 let timePassed = 0;
 let deathCount = 0;
 let prevTime = Date.now();
