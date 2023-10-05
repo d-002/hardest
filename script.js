@@ -368,6 +368,6 @@ window.onkeydown = (e) => {pressed[e.key] = true};
 let ctx, W, H, countDiv, msgDiv;
 let map, player, interval;
 let pressed = {};
-let level = 1;
+let level = 0;
 let deathCount = 0;
 let prevTime = Date.now();
