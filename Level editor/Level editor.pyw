@@ -118,22 +118,27 @@ def resize(w, h, firstTime=False):
     SCREENW = W*50 + 52
     SCREENH = max(H*50, (52*len(menu) + 256))
     screen = pygame.display.set_mode((SCREENW, SCREENH))
+    pygame.display.set_caption('Level editor')
+    pygame.display.set_icon(images['lava'])
 
 def show(msg):
     screen.fill(black)
     y = 10
     for line in msg.split('\n'):
-        screen.blit(font.render(line, 1, white), (10, y))
+        if line and line[0] == '§':
+            color = {'r': (255, 0, 0), 'g': (0, 255, 0), 'b': (100, 100, 255)}[line[1]]
+            line = line[2:]
+        else:
+            color = white
+        screen.blit(font.render(line, 1, color), (10, y))
         y += 16
-    screen.blit(font.render('[click or press a key to close]', 1, white), (10, y+16))
+    screen.blit(font.render('[press a key to close]', 1, (127, 127, 127)), (10, y+16))
     pygame.display.flip()
     while 1:
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 quit()
-            elif event.type == MOUSEBUTTONDOWN:
-                return
             elif event.type == KEYDOWN:
                 return
 
@@ -142,23 +147,25 @@ def show_help():
 
 Select a menu item on the left to place it in the main area in the middle.
 When the first item is selected, you can use left and right click to raise or lower the ground.
+Right click erases any item that might be here, except when using the first item.
+The Import button copies a full level code from your clipboard.
 The Export button will copy something to your clipboard.
 Just paste this code on Discord for me to review your level.
-The debug button allows you do see the terrain height and the checkpoints order.
+The debug button allows you to see the terrain height and the checkpoints order.
 
-Inputs at the bottom:
+§bInputs at the bottom:
 - W sets the width
 - H sets the height
 - * sets the slope strength multiplier
-Warning: resizing loses all your progress!
+§rWarning: resizing loses all your progress!
 
 You can press the middle mouse button to move the player to the mouse position.
 You can also move the player like in game with the arrows.
 Didn't bother adding all the collisions and stuff, not really useful here.
 
-You need at least one checkpoint for your level to be valid.
-In order to reach the last checkpoint and finish the level,
-  the player must be able to collect all coins.""")
+§gYou need at least one checkpoint for your level to be valid.
+§gIn order to reach the last checkpoint and finish the level,
+§g  the player must be able to collect all coins.""")
 
 def get_tex():
     global images
@@ -180,11 +187,60 @@ def change_mult(m):
     global mult
     mult = m
 
+def _import():
+    global mult, terrain, objects
+    data = pyperclip.paste().replace('"', '').split(';')
+    try:
+        if not len(data): raise Exception
+        for i in range(len(data)):
+            d = data[i]
+            match i:
+                case 0: W = int(d)
+                case 1: H = int(d)
+                case 2: mult = float(d)
+                case 6:
+                    _terrain = []
+                    i = 0
+                    for height in d:
+                        y, h = i//W, int(height)
+                        if len(_terrain) <= y: _terrain.append([h])
+                        else: _terrain[y].append(h)
+                        i += 1
+                case _:
+                    obj = []
+                    for pos in d.split(','):
+                        x, y = pos.split('.')
+                        obj.append((int(x), int(y)))
+                    match i:
+                        case 3: coins = obj
+                        case 4: cp = obj
+                        case 5: lava = obj
+                        case _: raise Exception
+        # load everything
+        resize(W, H)
+        objects = [coins, cp, lava]
+        terrain = _terrain
+
+        # place the player at the first checkpoint
+        if len(objects[1]):
+            x, y = objects[1][0]
+            player.x = 25 + x*50
+            player.y = 25 + y*50
+    except:
+        show("""§rWrong format
+Your imported level does not match the requirements.
+Make sure you put a valid level code into your clipboard and try again.""")
+
 def export():
     # print and copy to clipboard in a format readable by the js file
+    _max = max(max(line) for line in terrain)
+    if _max > 9:
+        return show("""§rTerrain error
+Your terrain height exceeds the decimal limit.
+Please use a different multiplier to fall into this range.""")
 
     if len(objects[1]) == 0:
-        show('Duh\nYour level needs at least one checkpoint.')
+        show('§rDuh\nYour level needs at least one checkpoint.')
         return
     if len(objects[1]) == 1:
         # add another checkpoint if start = finish
@@ -205,9 +261,6 @@ def export():
 
 def draw_ui(events):
     global selected
-    def erase(): # select eraser
-        global selected
-        selected = len(menu)
     def debug():
         global show_debug
         show_debug = not show_debug
@@ -217,17 +270,16 @@ def draw_ui(events):
         if event.type == MOUSEBUTTONDOWN and event.pos[0] < 52:
             click = event.pos[1]
 
-    for i in range(len(menu)+1): # these menu items can have a selection box around
-        if i < len(menu):
-            screen.blit(images[menu[i]], (1, i*52 + 1))
+    for i in range(len(menu)): # these menu items can have a selection box around
+        screen.blit(images[menu[i]], (1, i*52 + 1))
 
         if selected == i:
             pygame.draw.rect(screen, (255, 255, 0), Rect((0, i*52), (52, 52)), 1)
         if click is not None and i*52 <= click < (i+1) * 52:
             selected = i
 
-    y = i*52
-    for text, action in [('Erase', erase), ('Export', export), ('Debug', debug), ('Help', show_help)]:
+    y = i*52+52
+    for text, action in [('Import', _import), ('Export', export), ('Debug', debug), ('Help', show_help)]:
         text = font.render(text, 1, white)
         w, h = text.get_size()
         screen.blit(text, (26 - w//2, y + 26 - h//2))
@@ -255,7 +307,7 @@ def draw_map():
 
     # draw objects
     for i in range(len(objects)):
-        for j in range(len(objects[i])):
+        for j in range(len(objects[i])-1, -1, -1):
             x, y = objects[i][j]
             name = menu[i+1]
             screen.blit(images[name], (x*50 + 52, y*50))
@@ -290,12 +342,7 @@ def edit_map(events):
     if x >= W or y >= H:
         return # can't edit out of bounds
 
-    if selected == len(menu): # erase tiles objects when mouse pressed
-        if pygame.mouse.get_pressed()[0]:
-            for obj in objects:
-                if (x, y) in obj:
-                    obj.remove((x, y))
-    elif selected == 0: # edit map when mouse clicked
+    if selected == 0: # edit map when mouse clicked
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 if selected == 0: # change terrain height
@@ -304,15 +351,21 @@ def edit_map(events):
                     elif event.button == 3:
                         terrain[y][x] -= 1
                     fix_height()
-    else: # add object
-        if pygame.mouse.get_pressed()[0]:
-            l = objects[selected-1]
-            if (x, y) not in l:
-                l.append((x, y))
+    else: # other objects
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                if event.button == 1: # place object
+                    l = objects[selected-1]
+                    if (x, y) not in l:
+                        l.append((x, y))
+                elif event.button == 3: # remove object
+                    for obj in objects:
+                        if (x, y) in obj:
+                            obj.remove((x, y))
+                            break
 
 pygame.init()
 
-pygame.display.set_caption('Level editor')
 font = pygame.font.SysFont('consolas', 16)
 clock = pygame.time.Clock()
 
