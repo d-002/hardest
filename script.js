@@ -1,7 +1,7 @@
 let messages = ["boo loser", "you don't know what you're doing", "don't even try", "go back noob", "alt f4", "this one is ez", "why u keep trying", "azertyuiop", "qwertyuiop", "centered text", "now for an easy one", "this level is possible."];
 let levels = ["17;12;0.65;1.9,2.2,2.3,13.8;10.8,14.1,6.3;5.1,6.1,8.3;111111111111111111111222222111111111222222221111111112222332211111111122223322111111111222222221111111112222211111111111111111111111111111111111110000011100111000000000111000111000000111111111111111111111",
-"17;12;0.47;5.3,8.0,2.11,16.1,4.7,5.6,6.4,10.11,13.11;10.5,0.11,15.11;1.11,1.10,1.9,1.8,1.7,1.6,1.5,1.4,1.3,1.2,1.1,3.0,3.1,3.2,3.3,3.4,3.7,3.8,3.9,3.11,4.6,5.5,5.4,5.2,5.1,7.0,6.3,8.1,9.1,10.1,11.1,4.9,5.10,3.6,6.2,7.3,8.3,9.3,10.3,11.3,12.3,13.3,13.2,13.0,14.0,15.0,16.0,15.1,15.2,15.3,16.5,15.5,6.10,7.10,5.7,6.7,7.8,6.8,6.5,7.5,8.5,9.6,8.6,9.7,9.8,9.9,9.10,9.11,9.5,11.5,12.5,13.5,14.5,11.6,11.7,11.8,11.9,11.11,14.10,14.9,14.11,14.8,16.11,16.10,16.9,16.8,16.7;000000000000000000000000000000000000000000000000000000000000000000000000000011000000000000000110000000000000000000000000000000000000111100000000000001111000000000000011110011100000000111100111100000001111",
 "15;12;0.3;0.4,8.4,5.5,13.3,14.11,4.10;2.10,7.5,10.10,1.10;3.9,3.8,3.7,3.5,2.5,0.1,1.1,2.1,3.1,4.1,5.1,6.1,6.0,5.0,4.0,3.0,2.0,1.0,0.0,0.6,1.6,7.8,6.8,7.11,6.11,9.6,8.6,7.6,9.5,9.4,9.3,9.2,7.2,7.3,7.4,8.0,9.0,10.0,11.0,13.0,13.1,14.3,14.10,12.11,13.9,11.10,9.9,9.11,3.10,3.11;222222222222222222222222111112222222222222222444443322222233444443322222233332223322122222222223322222222222222222222222222222000222222222222000333333222222000333333333332000333333",
+"17;12;0.47;5.3,8.0,2.11,16.1,4.7,5.6,6.4,10.11,13.11;10.5,0.11,15.11;1.11,1.10,1.9,1.8,1.7,1.6,1.5,1.4,1.3,1.2,1.1,3.0,3.1,3.2,3.3,3.4,3.7,3.8,3.9,3.11,4.6,5.5,5.4,5.2,5.1,7.0,6.3,8.1,9.1,10.1,11.1,4.9,5.10,3.6,6.2,7.3,8.3,9.3,10.3,11.3,12.3,13.3,13.2,13.0,14.0,15.0,16.0,15.1,15.2,15.3,16.5,15.5,6.10,7.10,5.7,6.7,7.8,6.8,6.5,7.5,8.5,9.6,8.6,9.7,9.8,9.9,9.10,9.11,9.5,11.5,12.5,13.5,14.5,11.6,11.7,11.8,11.9,11.11,14.10,14.9,14.11,14.8,16.11,16.10,16.9,16.8,16.7;000000000000000000000000000000000000000000000000000000000000000000000000000011000000000000000110000000000000000000000000000000000000111100000000000001111000000000000011110011100000000111100111100000001111",
 "17;12;0.4;8.7,11.4,5.4,8.1,14.1,14.7,2.1,2.7,11.10,5.10;2.10,14.10;8.10,11.7,14.4,11.1,8.4,5.1,5.7,2.4;111111111111111110122100122100122101221001221001221111111111111111112100122100122100121001221001221001111111111111111110122100122100122101221001221001221111111111111111112100122100122100121001221001221001"];
 
 class Map {
@@ -230,13 +230,28 @@ class Player {
 		}		
 		this.collideWall(); // eventually stop moving
 		
-		this.x = Math.min(Math.max(this.x + this.dx, 16), map.w * 50 - 16);
-		this.y = Math.min(Math.max(this.y + this.dy, 16), map.h * 50 - 16);
+		this.x += this.dx;
+		this.y += this.dy;
 		this.dx *= 0.93;
 		this.dy *= 0.93;
 	}
 	
 	collideWall() {
+		let X = map.w*50 - 16;
+		let Y = map.h*50 - 16;
+		if (this.x < 16) {
+			this.x = 16;
+			this.dx = Math.abs(this.dx)/2;
+		} else if (this.x > X) {
+			this.x = X;
+			this.dx = -Math.abs(this.dx)/2;
+		} if (this.y < 16) {
+			this.y = 16;
+			this.dy = Math.abs(this.dy)/2;
+		} else if (this.y > Y) {
+			this.y = Y;
+			this.dy = -Math.abs(this.dy)/2;
+		}
 	}
 	
 	interact() {
@@ -304,13 +319,6 @@ function eq(l1, l2) {
 	return true;
 }
 
-function init() {
-	countDiv = document.getElementById("death-count");
-	msgDiv = document.getElementById("message");
-	updateCount();
-	newLevel();
-}
-
 function updateCount() {
 	countDiv.innerHTML = "Death count: "+deathCount;
 }
@@ -322,9 +330,13 @@ function newLevel() {
 
 	window.setTimeout(() => {
 		msgDiv.className = "animation";
+		window.setTimeout(() => { msgDiv.className = "hidden"; }, 1000);
 
 		if (level == levels.length) {
 			console.log("End of the game lul");
+			window.clearInterval(interval);
+			divs[1].className = "hidden";
+			divs[2].className = "";
 		} else {
 			map = new Map(levels[level]);
 			player = new Player();
@@ -334,15 +346,15 @@ function newLevel() {
 }
 
 function initCanvas() {
-	canvas = document.getElementById("game");
+	canvas = document.getElementById("canvas");
 	if (canvas != undefined) {
-		document.body.removeChild(canvas);
+		gameDiv.removeChild(canvas);
 	}
 	canvas = document.createElement("canvas");
-	canvas.id = "game";
+	canvas.id = "canvas";
 	canvas.width = W = map.w * 50;
 	canvas.height = H = map.h * 50;
-	document.body.appendChild(canvas);
+	gameDiv.insertBefore(canvas, gameDiv.firstChild);
 	ctx = canvas.getContext("2d");
 	
 	interval = setInterval(mainLoop, 1000/60);
@@ -362,10 +374,31 @@ function mainLoop() {
 	player.update();
 }
 
+function startGame() {
+	divs[0].className = "hidden";
+	divs[1].className = "";
+	updateCount();
+	newLevel();
+}
+
+function stopGame() {
+	window.clearInterval(interval);
+	divs[0].className = "";
+	divs[1].className = "hidden";
+}
+
+function init() {
+	gameDiv = document.getElementById("game");
+	countDiv = document.getElementById("death-count");
+	msgDiv = document.getElementById("message");
+	divs = [];
+	["menu", "game", "win"].forEach((id) => { divs.push(document.getElementById(id)); });
+}
+
 window.onkeyup = (e) => {pressed[e.key] = false};
 window.onkeydown = (e) => {pressed[e.key] = true};
 
-let ctx, W, H, countDiv, msgDiv;
+let ctx, W, H, gameDiv, countDiv, msgDiv, divs;
 let map, player, interval;
 let pressed = {};
 let level = 0;

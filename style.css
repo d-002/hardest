@@ -3,10 +3,13 @@ html, body {
 	padding: 0;
 	background-color: black;
 	font-family: comic sans ms, serif;
-	color: #5b5b5b;
 }
 
-#game {
+.hidden {
+	display: none !important;
+}
+
+#canvas {
 	position: absolute;
 	width: 100%;
 	height: 100%;
@@ -15,24 +18,35 @@ html, body {
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	cursor: none;
 }
 
-#death-count {
-	z-index: 1;
+#top {
 	position: fixed;
+	display: flex;
+	align-items: center;
+	gap: 20px;
 	top: 0;
 	left: 0;
-	background-color: #c3c3c3;
-	font-size: 30px;
-	font-weight: bold;
 	padding: 10px;
+
+	font-size: 20px;
+	font-weight: bold;
+	background-color: rgba(255, 255, 255, 0.3);
+	color: black;
 }
 
+#top p { margin: 0; }
+#top a {
+	text-decoration: none;
+	color: #33f;
+}
+#top a:hover { text-decoration: underline; }
+
 #message {
-	z-index: 2;
+	z-index: 1;
 	opacity: 1;
 	position: fixed;
+	top: 0;
 	width: 100%;
 	height: 100%;
 	background-color: #c3c3c3;
@@ -49,4 +63,40 @@ html, body {
   transition-property: opacity;
   transition-duration: 1s;
   opacity: 0 !important;
+}
+
+#menu,#win {
+	margin: 200px;
+	padding: 30px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+
+	background-color: #c3c3c3;
+	box-shadow: 0 0 50px #777;
+}
+
+h1 {
+	font-size: 50px;
+	font-weight: 100;
+}
+
+h2 { font-size: 30px; }
+
+#menu a, #win a {
+	transition: 0.5s;
+
+	display: block;
+	text-align: center;
+	font-size: 20px;
+	padding: 8px;
+	width: 150px;
+
+	background-color: #999;
+	color: white;
+	text-decoration: none;
+}
+
+#menu a:hover, #win a:hover {
+	transform: rotate(180deg);
 }
