@@ -45,8 +45,21 @@ class Player:
             self.dx += v.x
             self.dy += v.y
 
-        self.x = min(max(self.x+self.dx, 16), W*50 - 16)
-        self.y = min(max(self.y+self.dy, 16), H*50 - 16)
+        X, Y = W*50 - 16, H*50 - 16
+        if self.x < 16:
+            self.x = 16
+            self.dx = abs(self.dx)/2
+        elif self.x > X:
+            self.x = X
+            self.dx = -abs(self.dx)/2
+        if self.y < 16:
+            self.y = 16
+            self.dy = abs(self.dy)
+        elif self.y > Y:
+            self.y = Y
+            self.dy = -abs(self.dy)
+        self.x += self.dx
+        self.y += self.dy
         self.dx *= 0.93
         self.dy *= 0.93
 
@@ -218,6 +231,9 @@ def _import():
                         case _: raise Exception
         # load everything
         resize(W, H)
+        inputs[0].value = str(W)
+        inputs[1].value = str(H)
+        inputs[2].value = str(mult)
         objects = [coins, cp, lava]
         terrain = _terrain
 
@@ -306,8 +322,8 @@ def draw_map():
                     screen.blit(images['error'], pos)
 
     # draw objects
-    for i in range(len(objects)):
-        for j in range(len(objects[i])-1, -1, -1):
+    for i in range(len(objects)-1, -1, -1):
+        for j in range(len(objects[i])):
             x, y = objects[i][j]
             name = menu[i+1]
             screen.blit(images[name], (x*50 + 52, y*50))
