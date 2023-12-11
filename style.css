@@ -36,11 +36,14 @@ html, body {
 }
 
 #top p { margin: 0; }
-#top a {
+a:not(.button) {
 	text-decoration: none;
-	color: #33f;
+	color: #aaf;
 }
-#top a:hover { text-decoration: underline; }
+#menu a:not(.button) {
+	color: #00f;
+}
+a:not(.button):hover { text-decoration: underline; }
 
 #message {
 	z-index: 1;
@@ -83,7 +86,7 @@ h1 {
 
 h2 { font-size: 30px; }
 
-#menu a, #win a {
+a.button {
 	transition: 0.5s;
 
 	display: block;
@@ -97,6 +100,6 @@ h2 { font-size: 30px; }
 	text-decoration: none;
 }
 
-#menu a:hover, #win a:hover {
+a.button:hover {
 	transform: rotate(180deg);
 }
