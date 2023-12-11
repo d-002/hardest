@@ -10,7 +10,8 @@ let levels = ["17;12;0.65;1.9,2.2,2.3,13.8;10.8,14.1,6.3;5.1,6.1,8.3;11111111111
 
 class TexHandler {
 	constructor() {
-		let names = ["0000", "0001", "0010", "0011", "0100", "0101", "0111", "1000", "1010", "1011", "1100", "1101", "1110", "coin", "cpInactive", "cpActive", "lava", "error"];
+		let names = ["coin", "cpInactive", "cpActive", "lava"];
+		for (let i = 0; i < 15; i++) names.push("0".repeat(4-i.toString(2).length) + i.toString(2));
 		this.tex = {};
 		for (let i = 0; i < names.length; i++) {
 			let img = new Image("img");
