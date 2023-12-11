@@ -148,6 +148,7 @@ class Player {
 		this.coinsSave = []; // coins picked up last checkpoint
 		this.respawn();
 		this.speed = 0.5;
+		this.hasDied = 0; // will be a timestamp
 	}
 
 	respawn() {
@@ -192,9 +193,22 @@ class Player {
 	}
 
 	update() {
-		this.move();
-		this.interact();
-		this.draw();
+		if (this.hasDied != 0) {
+			let t = (Date.now()-this.hasDied) * 0.002;
+			if (t > 1) {
+				this.hasDied = 0;
+				this.respawn();
+				deathCount += 1;
+				updateTopDiv();
+				map.mapDrawn = false; // refresh the screen for non-taken coins
+			}
+			else this.draw(t);
+		}
+		else {
+			this.move();
+			this.interact();
+			this.draw();
+		}
 	}
 
 	move() {
@@ -213,7 +227,7 @@ class Player {
 			this.dx += v[0] * this.speed / length;
 			this.dy += v[1] * this.speed / length;
 		}		
-		this.collideWall(); // eventually stop moving
+		this.collideWall(); // possibly bounce off the walls
 
 		this.x += this.dx;
 		this.y += this.dy;
@@ -254,8 +268,8 @@ class Player {
 							if (o[1] == map.totalCp - 1) {
 								// end checkpoint: requires all coins to finish the level
 								if (this.coins.length == map.totalCoins) {
-									console.log("u win ez");
 									level += 1;
+									updateTopDiv();
 									clearInterval(interval);
 									window.setTimeout(newLevel, 0); // next level
 									return;
@@ -268,18 +282,18 @@ class Player {
 						}
 					} else if (o[0] == "lava") {
 						if (this.collideObject(x * 50, y * 50, [50, 50], "rect")) {
-							this.respawn();
-							deathCount += 1;
-							updateCount();
+							this.hasDied = Date.now();
 							return;
 						}
 					}
 				}
 	}
 
-	draw() {
-		ctx.strokeStyle = "#007";
-		ctx.fillStyle = "rgb(0, G, 255)".replace("G", 38*Math.sqrt(this.dx*this.dx + this.dy*this.dy));
+	draw(fade=0) {
+		let g = 38*Math.sqrt(this.dx*this.dx + this.dy*this.dy);
+		let a = 1-fade;
+		ctx.strokeStyle = "rgb(0, 0, 127, "+a+")";
+		ctx.fillStyle = "rgb(0, "+g+", 255, "+a+")";
 		ctx.beginPath();
 		ctx.arc(this.x, this.y, 15, 0, 2 * Math.PI);
 		ctx.fill();
@@ -294,8 +308,8 @@ function eq(l1, l2) {
 	return true;
 }
 
-function updateCount() {
-	countDiv.innerHTML = "Death count: "+deathCount;
+function updateTopDiv() {
+	infoDiv.innerHTML = "Death count: "+deathCount+" - Level: "+(level+1)+"/"+levels.length;
 }
 
 function newLevel() {
@@ -308,7 +322,6 @@ function newLevel() {
 		window.setTimeout(() => { msgDiv.className = "hidden"; }, 1000);
 
 		if (level == levels.length) {
-			console.log("End of the game lul");
 			window.clearInterval(interval);
 			divs[1].className = "hidden";
 			divs[2].className = "";
@@ -348,7 +361,7 @@ function mainLoop() {
 function startGame() {
 	divs[0].className = "hidden";
 	divs[1].className = "";
-	updateCount();
+	updateTopDiv();
 	newLevel();
 }
 
@@ -360,7 +373,7 @@ function stopGame() {
 
 function init() {
 	gameDiv = document.getElementById("game");
-	countDiv = document.getElementById("death-count");
+	infoDiv = document.getElementById("top-info");
 	msgDiv = document.getElementById("message");
 	divs = [];
 	["menu", "game", "win"].forEach((id) => { divs.push(document.getElementById(id)); });
@@ -372,12 +385,24 @@ function init() {
 			a.href = "https://github.com/"+value;
 		}
 	});
+
+	// add random button animation
+	let style = document.createElement("style");
+	let animations = ["translateY(200%)", "translateX(100%)", "translateY(-200%)", "translateX(50%) rotate(90deg)", "translate(50%, 300%) rotate(-180deg)"];
+	let setStyle = function() {
+		let i = parseInt(Math.random() * (animations.length+1));
+		if (i == animations.length) style.innerHTML = "a.button:hover { opacity: 0; transform: translateX(-100%) rotate(-360deg); }";
+		else style.innerHTML = "a.button:hover { transform: "+animations[i]+"; }";
+	};
+	document.head.appendChild(style);
+	setStyle();
+	window.setInterval(setStyle, 1000);
 }
 
 window.onkeyup = (e) => {pressed[e.key] = false};
 window.onkeydown = (e) => {pressed[e.key] = true};
 
-let ctx, W, H, gameDiv, countDiv, msgDiv, divs;
+let ctx, W, H, gameDiv, infoDiv, msgDiv, divs;
 let map, player, interval;
 let pressed = {};
 let level = 0;
