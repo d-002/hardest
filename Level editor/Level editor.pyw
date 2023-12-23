@@ -16,30 +16,38 @@ class Player:
         self.draw()
 
     def slope(self):
-        if abs(self.x%50 - 25) > 20 and abs(self.y%50 - 25) > 20:
-            return 0, 0
-        points = get_points(int(self.x/50), int(self.y/50))
+        x, mx = divmod(self.x, 50)
+        y, my = divmod(self.y, 50)
+        x, y = int(x), int(y)
+        if abs(mx - 25) > 20 and abs(my - 25) > 20: return 0, 0
+        points = get_points(x, y)
         dx0 = points[1]-points[0]
         dx1 = points[3]-points[2]
         dy0 = points[2]-points[0]
         dy1 = points[3]-points[1]
-        return dx0 + (dx1-dx0) * (self.y%50) / 50, dy0 + (dy1-dy0) * (self.x%50) / 50
+        return dx0 + (dx1-dx0) * my / 50, dy0 + (dy1-dy0) * mx / 50
 
     def move(self):
+        # oil
+        factor = 0.93
+        X, Y = int(self.x/50), int(self.y/50)
+        for x in range(X-1, X+2):
+            for y in range(Y-1, Y+2):
+                if (x, y) in objects[3]:
+                    dx, dy = x + 0.5 - self.x/50, y + 0.5 - self.y/50
+                    if dx*dx+dy*dy < 1:
+                        factor = 0.96
+
         dx, dy = self.slope()
         self.dx -= dx*mult
         self.dy -= dy*mult
 
         v = Vector2() # movement vector
         pressed = pygame.key.get_pressed()
-        if pressed[K_LEFT]:
-            v.x -= 1
-        if pressed[K_RIGHT]:
-            v.x += 1
-        if pressed[K_UP]:
-            v.y -= 1
-        if pressed[K_DOWN]:
-            v.y += 1
+        if pressed[K_LEFT]: v.x -= 1
+        if pressed[K_RIGHT]: v.x += 1
+        if pressed[K_UP]: v.y -= 1
+        if pressed[K_DOWN]: v.y += 1
         if v.length():
             v = v.normalize()*self.speed
             self.dx += v.x
@@ -60,8 +68,8 @@ class Player:
             self.dy = -abs(self.dy)
         self.x += self.dx
         self.y += self.dy
-        self.dx *= 0.93
-        self.dy *= 0.93
+        self.dx *= factor
+        self.dy *= factor
 
     def draw(self):
         speed = sqrt(self.dx*self.dx + self.dy*self.dy)
@@ -84,30 +92,22 @@ class Inputbox:
         rect = Rect((self.x+w, self.y), (52-w, 16))
 
         for event in events:
-            if event.type == MOUSEBUTTONDOWN:
-                if rect.collidepoint(event.pos):
-                    self.active = True
-                else:
-                    self.active = False
+            if event.type == MOUSEBUTTONDOWN: self.active = rect.collidepoint(event.pos)
             elif self.active and event.type == KEYDOWN:
-                if event.unicode in '0123456789-.':
-                    self.value += event.unicode
-                elif event.key == K_BACKSPACE:
-                    self.value = self.value[:-1]
+                if event.unicode in '0123456789-.': self.value += event.unicode
+                elif event.key == K_BACKSPACE: self.value = self.value[:-1]
                 elif event.key in [K_RETURN, K_KP_ENTER]:
                     self.action(float(self.value))
                     self.active = False
 
         value = self.value
-        if self.active and cos(pygame.time.get_ticks()/100) > 0:
-            value += '_'
+        if self.active and cos(pygame.time.get_ticks()/100) > 0: value += '_'
         screen.blit(text, (self.x, self.y))
         pygame.draw.rect(screen, grey, rect)
         screen.blit(font.render(value, 1, white), (self.x+w, self.y))
 
 def round_(n):
-    if n%1 < 0.5:
-        return int(n)
+    if n%1 < 0.5: return int(n)
     return int(n)+1
 
 def resize(w, h, firstTime=False):
@@ -122,14 +122,13 @@ def resize(w, h, firstTime=False):
     terrain = []
     for y in range(H):
         terrain.append([])
-        for x in range(W):
-            terrain[-1].append(0)
-    objects = [[], [], []] # corresponding to all object lists, in the order of menu
+        for x in range(W): terrain[-1].append(0)
+    objects = [[], [], [], []] # corresponding to all object lists, in the order of menu
 
     pygame.display.quit()
     pygame.display.init()
     SCREENW = W*50 + 52
-    SCREENH = max(H*50, (52*len(menu) + 256))
+    SCREENH = max(H*50, (52*len(menu) + 308))
     screen = pygame.display.set_mode((SCREENW, SCREENH))
     pygame.display.set_caption('Level editor')
     pygame.display.set_icon(images['lava'])
@@ -141,8 +140,7 @@ def show(msg):
         if line and line[0] == '§':
             color = {'r': (255, 0, 0), 'g': (0, 255, 0), 'b': (100, 100, 255)}[line[1]]
             line = line[2:]
-        else:
-            color = white
+        else: color = white
         screen.blit(font.render(line, 1, color), (10, y))
         y += 16
     screen.blit(font.render('[press a key to close]', 1, (127, 127, 127)), (10, y+16))
@@ -152,13 +150,10 @@ def show(msg):
             if event.type == QUIT:
                 pygame.quit()
                 quit()
-            elif event.type == KEYDOWN:
-                return
+            elif event.type == KEYDOWN: return
 
 def show_help():
-    show("""Too lazy to make this prettier sry
-
-Select a menu item on the left to place it in the main area in the middle.
+    show("""Select a menu item on the left to place it in the main area in the middle.
 When the first item is selected, you can use left and right click to raise or lower the ground.
 Right click erases any item that might be here, except when using the first item.
 The Import button copies a full level code from your clipboard.
@@ -182,18 +177,18 @@ Didn't bother adding all the collisions and stuff, not really useful here.
 
 def get_tex():
     global images
-    names = '0000 0001 0010 0011 0100 0101 0111 1000 1010 1011 1100 1101 1110 coin cpInactive cpActive lava error'.split(' ')
-    images = {name: pygame.image.load('../images/%s.png' %name) for name in names}
+    names = 'coin cpInactive cpActive lava water'
+    for x in range(15):
+        x = str(bin(x)).split('b')[1]
+        names += ' ' + '0'*(4-len(x)) + x
+    names = names.split(' ')
+    images = {name: pygame.image.load('../images/%s.png' %('l0000' if name == 'lava' else name)) for name in names}
 
 def get_points(x, y):
-    if x == W - 1:
-        x_ = x
-    else:
-        x_ = x+1
-    if y == H - 1:
-        y_ = y
-    else:
-        y_ = y+1
+    if x == W - 1: x_ = x
+    else: x_ = x+1
+    if y == H - 1: y_ = y
+    else: y_ = y+1
     return [terrain[y][x], terrain[y][x_], terrain[y_][x], terrain[y_][x_]]
 
 def change_mult(m):
@@ -211,7 +206,7 @@ def _import():
                 case 0: W = int(d)
                 case 1: H = int(d)
                 case 2: mult = float(d)
-                case 6:
+                case 7:
                     _terrain = []
                     i = 0
                     for height in d:
@@ -221,20 +216,22 @@ def _import():
                         i += 1
                 case _:
                     obj = []
-                    for pos in d.split(','):
-                        x, y = pos.split('.')
-                        obj.append((int(x), int(y)))
+                    if d:
+                        for pos in d.split(','):
+                            x, y = pos.split('.')
+                            obj.append((int(x), int(y)))
                     match i:
                         case 3: coins = obj
                         case 4: cp = obj
                         case 5: lava = obj
+                        case 6: slime = obj
                         case _: raise Exception
         # load everything
         resize(W, H)
         inputs[0].value = str(W)
         inputs[1].value = str(H)
         inputs[2].value = str(mult)
-        objects = [coins, cp, lava]
+        objects = [coins, cp, lava, slime]
         terrain = _terrain
 
         # place the player at the first checkpoint
@@ -242,7 +239,7 @@ def _import():
             x, y = objects[1][0]
             player.x = 25 + x*50
             player.y = 25 + y*50
-    except:
+    except 1:
         show("""§rWrong format
 Your imported level does not match the requirements.
 Make sure you put a valid level code into your clipboard and try again.""")
@@ -256,24 +253,22 @@ Your terrain height exceeds the decimal limit.
 Please use a different multiplier to fall into this range.""")
 
     if len(objects[1]) == 0:
-        show('§rDuh\nYour level needs at least one checkpoint.')
+        show('§rYour level needs at least one checkpoint.')
         return
     if len(objects[1]) == 1:
         # add another checkpoint if start = finish
         remove = True
         objects[1].append(objects[1][0])
-    else:
-        remove = False
+    else: remove = False
 
     obj = ';'.join([','.join(['%d.%d'%(x, y) for x, y in l]) for l in objects])
     data = ''.join([''.join([str(x) for x in line]) for line in terrain])
     data = '%d;%d;%s;%s;%s' %(W, H, mult, obj, data)
 
-    if remove:
-        objects[1].pop() # remove the added checkpoint
+    if remove: objects[1].pop() # remove the added checkpoint
 
     print(data)
-    pyperclip.copy('"%s"' %data)
+    pyperclip.copy(data)
 
 def draw_ui(events):
     global selected
@@ -283,16 +278,13 @@ def draw_ui(events):
 
     click = None
     for event in events:
-        if event.type == MOUSEBUTTONDOWN and event.pos[0] < 52:
-            click = event.pos[1]
+        if event.type == MOUSEBUTTONDOWN and event.pos[0] < 52: click = event.pos[1]
 
     for i in range(len(menu)): # these menu items can have a selection box around
         screen.blit(images[menu[i]], (1, i*52 + 1))
 
-        if selected == i:
-            pygame.draw.rect(screen, (255, 255, 0), Rect((0, i*52), (52, 52)), 1)
-        if click is not None and i*52 <= click < (i+1) * 52:
-            selected = i
+        if selected == i: pygame.draw.rect(screen, (255, 255, 0), Rect((0, i*52), (52, 52)), 1)
+        if click is not None and i*52 <= click < (i+1) * 52: selected = i
 
     y = i*52+52
     for text, action in [('Import', _import), ('Export', export), ('Debug', debug), ('Help', show_help)]:
@@ -300,8 +292,7 @@ def draw_ui(events):
         w, h = text.get_size()
         screen.blit(text, (26 - w//2, y + 26 - h//2))
 
-        if click is not None and y <= click < y+52:
-            action()
+        if click is not None and y <= click < y+52: action()
         y += 52
 
 def draw_map():
@@ -312,14 +303,11 @@ def draw_map():
             points = get_points(x, y)
             min_ = min(points)
             max_ = max(points)
-            if min_ == max_:
-                screen.blit(images['0000'], pos)
+            if min_ == max_: screen.blit(images['0000'], pos)
             else:
                 name = ''.join([str(round_((p-min_) / (max_-min_))) for p in points])
-                if name in images:
-                    screen.blit(images[name], pos)
-                else:
-                    screen.blit(images['error'], pos)
+                if name in images: screen.blit(images[name], pos)
+                else: raise Exception
 
     # draw objects
     for i in range(len(objects)-1, -1, -1):
@@ -341,8 +329,7 @@ def draw_map():
 def fix_height():
     # make the min height 0
     offset = min(sum(terrain, []))
-    for y in range(H):
-        terrain[y] = [height-offset for height in terrain[y]]
+    for y in range(H): terrain[y] = [height-offset for height in terrain[y]]
 
 def edit_map(events):
     x, y = pygame.mouse.get_pos()
@@ -355,25 +342,21 @@ def edit_map(events):
     else: # select tiles
         x, y = (x - 52) // 50, y//50
         pygame.draw.rect(screen, (255, 255, 0), Rect((x*50 + 52, y*50), (50, 50)), 1)
-    if x >= W or y >= H:
-        return # can't edit out of bounds
+    if x >= W or y >= H: return # can't edit out of bounds
 
     if selected == 0: # edit map when mouse clicked
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 if selected == 0: # change terrain height
-                    if event.button == 1:
-                        terrain[y][x] += 1
-                    elif event.button == 3:
-                        terrain[y][x] -= 1
+                    if event.button == 1: terrain[y][x] += 1
+                    elif event.button == 3: terrain[y][x] -= 1
                     fix_height()
     else: # other objects
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 1: # place object
                     l = objects[selected-1]
-                    if (x, y) not in l:
-                        l.append((x, y))
+                    if (x, y) not in l: l.append((x, y))
                 elif event.button == 3: # remove object
                     for obj in objects:
                         if (x, y) in obj:
@@ -389,16 +372,16 @@ white = (255, 255, 255)
 grey = (127, 127, 127)
 black = (0, 0, 0)
 get_tex()
-menu = ['0000', 'coin', 'cpInactive', 'lava']
+menu = ['0000', 'coin', 'cpInactive', 'lava', 'water']
 selected = 0
 mult = 1 # slope strength multiplier
 show_debug = False
 
 resize(17, 12, True)
 player = Player()
-inputs = [Inputbox(0, 416, W, 'W', lambda W: resize(W, H)),
-          Inputbox(0, 432, H, 'H', lambda H: resize(W, H)),
-          Inputbox(0, 448, mult, '*', change_mult)]
+inputs = [Inputbox(0, 468, W, 'W', lambda W: resize(W, H)),
+          Inputbox(0, 484, H, 'H', lambda H: resize(W, H)),
+          Inputbox(0, 500, mult, '*', change_mult)]
 
 while True:
     events = pygame.event.get()
@@ -417,8 +400,7 @@ while True:
     draw_ui(events)
     edit_map(events)
     player.update()
-    for box in inputs:
-        box.update(events)
+    for box in inputs: box.update(events)
 
     pygame.display.flip()
     clock.tick(60)
