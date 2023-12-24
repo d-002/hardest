@@ -423,7 +423,7 @@ function init() {
 		if (i == animations.length) style.innerHTML = "a.button:hover { opacity: 0; transform: translateX(-100%) rotate(-360deg); }";
 		else style.innerHTML = "a.button:hover { transform: "+animations[i]+"; }";
 	};
-	//document.head.appendChild(style);
+	document.head.appendChild(style);
 	setStyle();
 	window.setInterval(setStyle, 1000);
 }
@@ -434,7 +434,7 @@ window.onkeydown = (e) => {pressed[e.key] = true};
 let ctx, W, H, gameDiv, infoDiv, msgDiv, divs;
 let map, player, interval;
 let pressed = {};
-let level = 7;
+let level = 0;
 let deathCount = 0;
 let prevTime = Date.now();
 let tex = new TexHandler();
