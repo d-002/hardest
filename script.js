@@ -354,6 +354,7 @@ function newLevel() {
 			window.clearInterval(interval);
 			divs[1].className = "hidden";
 			divs[2].className = "";
+			document.getElementById("time-result").innerHTML = "You lost "+timer.innerHTML+" of your life in the process.";
 		} else {
 			map = new Map(levels[level]);
 			player = new Player();
@@ -389,6 +390,12 @@ function mainLoop() {
 	timer.innerHTML = h+":"+m+":"+s+"."+ms;
 	map.draw();
 	player.update();
+	
+	// try to start music once loaded
+	if (musicReady == 1) {
+		music.play();
+		musicReady = 2;
+	}
 }
 
 function startGame() {
@@ -401,9 +408,15 @@ function startGame() {
 }
 
 function stopGame() {
+	// back to menu
 	window.clearInterval(interval);
 	divs[0].className = "";
 	divs[1].className = "hidden";
+	
+	// stop music
+	music.pause();
+	music.currentTime = 0;
+	musicReady = 1;
 }
 
 function init() {
@@ -413,6 +426,13 @@ function init() {
 	timer = document.getElementById("timer");
 	divs = [];
 	["menu", "game", "win"].forEach((id) => { divs.push(document.getElementById(id)); });
+	
+	// handle music
+	music = document.createElement("audio");
+	music.src = "Around.mp3";
+	music.loop = true;
+	document.body.appendChild(music);
+	music.addEventListener("canplaythrough", () => {musicReady = 1});
 	
 	// add links to github profiles
 	Array.from(document.getElementsByTagName("a")).forEach((a) => {
@@ -445,3 +465,5 @@ let level = 0;
 let deathCount = 0;
 let tex = new TexHandler();
 let startTime, hasStarted;
+let music;
+let musicReady = 0;
