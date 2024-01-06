@@ -343,7 +343,7 @@ function updateTopDiv() {
 
 function newLevel() {
 	// show a message on screen
-	msgDiv.children[0].innerHTML = messages[parseInt(Math.random()*messages.length)];
+	msgDiv.innerHTML = messages[parseInt(Math.random()*messages.length)];
 	msgDiv.className = "";
 
 	window.setTimeout(() => {
@@ -364,12 +364,8 @@ function newLevel() {
 
 function initCanvas() {
 	canvas = document.getElementById("canvas");
-	if (canvas != undefined) gameDiv.removeChild(canvas);
-	canvas = document.createElement("canvas");
-	canvas.id = "canvas";
 	canvas.width = W = map.w * 50;
 	canvas.height = H = map.h * 50;
-	gameDiv.insertBefore(canvas, gameDiv.firstChild);
 	ctx = canvas.getContext("2d");
 	
 	interval = setInterval(mainLoop, 1000/60);
@@ -382,12 +378,22 @@ function sum(l) {
 }
 
 function mainLoop() {
-	let prevTime = Date.now();
+	let t = Date.now()-startTime;
+	let ms = t%1000;
+	let s = parseInt(t/1000)%60;
+	let m = parseInt(t/60000)%60;
+	let h = parseInt(t/3600000);
+	ms = parseInt(ms/100)+""+parseInt(ms/10)%10+""+ms%10;
+	s = parseInt(s/10)+""+s%10;
+	m = parseInt(m/10)+""+m%10;
+	timer.innerHTML = h+":"+m+":"+s+"."+ms;
 	map.draw();
 	player.update();
 }
 
 function startGame() {
+	if (!hasStarted) startTime = Date.now();
+	hasStarted = true;
 	divs[0].className = "hidden";
 	divs[1].className = "";
 	updateTopDiv();
@@ -404,6 +410,7 @@ function init() {
 	gameDiv = document.getElementById("game");
 	infoDiv = document.getElementById("top-info");
 	msgDiv = document.getElementById("message");
+	timer = document.getElementById("timer");
 	divs = [];
 	["menu", "game", "win"].forEach((id) => { divs.push(document.getElementById(id)); });
 	
@@ -431,10 +438,10 @@ function init() {
 window.onkeyup = (e) => {pressed[e.key] = false};
 window.onkeydown = (e) => {pressed[e.key] = true};
 
-let ctx, W, H, gameDiv, infoDiv, msgDiv, divs;
+let ctx, W, H, gameDiv, infoDiv, msgDiv, divs, timer;
 let map, player, interval;
 let pressed = {};
 let level = 0;
 let deathCount = 0;
-let prevTime = Date.now();
 let tex = new TexHandler();
+let startTime, hasStarted;

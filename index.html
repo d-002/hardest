@@ -1,8 +1,8 @@
 <html>
 	<head>
 		<title>Actual world's hardest game</title>
-		<link rel="stylesheet" href="style.css">
-		<script src="script.js"></script>
+		<link rel="stylesheet" href="style.css?v=1.6">
+		<script src="script.js?v=1.6"></script>
 	</head>
 	
 	<body onload="javascript:init()">
@@ -15,8 +15,9 @@
 		</div>
 
 		<div id="game" class="hidden">
-			<div id="message"><p></p></div>
-			<div id="top"><p id="top-info"></p><a href="javascript:stopGame()">Rage quit</a></div>
+			<div id="top"><p id="top-info"></p><a href="javascript:stopGame()">Rage quit</a><p>You lost <span id="timer"></span> of your life here. Congrats.</p></div>
+			<canvas id="canvas"></canvas>
+			<div id="message"></div>
 		</div>
 
 		<div id="menu">
