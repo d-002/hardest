@@ -51,6 +51,7 @@ a:not(.button):hover {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+    text-align: center;
 
 	z-index: 1;
 	opacity: 1;
