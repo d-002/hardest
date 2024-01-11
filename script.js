@@ -401,10 +401,13 @@ function mainLoop() {
 		music.play();
 		musicReady = 2;
 	}
+	if (prevTime == null) deltaTime = 0;
+	else deltaTime = (Date.now()-prev) / 1000;
+	prevTime = Date.now();
 }
 
 function startGame() {
-	if (!hasStarted) startTime = Date.now()-10564562;
+	if (!hasStarted) startTime = Date.now();
 	hasStarted = true;
 	divs[0].className = "hidden";
 	divs[1].className = "";
@@ -422,6 +425,7 @@ function stopGame() {
 	music.pause();
 	music.currentTime = 0;
 	musicReady = 1;
+	prevTime = null;
 }
 
 function init() {
@@ -467,11 +471,15 @@ window.onkeydown = (e) => {pressed[e.key] = true};
 
 let ctx, W, H, gameDiv, infoDiv, msgDiv, divs, timer, keysSpan;
 let map, player, interval;
-let pressed = {};
-let level = 0;
-let keys = 0; // 0: wasd, 1: zqsd
-let deathCount = 0;
 let tex = new TexHandler();
+
+let pressed = {};
+let keys = 0; // 0: wasd, 1: zqsd
+
 let startTime, hasStarted;
+let prevTime, deltaTime = 0;
+let level = 0;
+let deathCount = 0;
+
 let music;
 let musicReady = 0;
