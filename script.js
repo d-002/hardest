@@ -171,7 +171,7 @@ class Player {
 		this.cpId = 0;
 		this.coinsSave = []; // coins picked up last checkpoint
 		this.respawn();
-		this.speed = 0.5;
+		this.speed = 30.5;
 		this.factor = 0.93;
 		this.hasDied = 0; // will be a timestamp
 	}
@@ -237,9 +237,10 @@ class Player {
 	}
 
 	move() {
+		this.collideWall(); // possibly bounce off the walls
 		let dxy = map.slope(this.x, this.y);
-		this.dx -= dxy[0];
-		this.dy -= dxy[1];
+		this.dx -= dxy[0] * (deltaTime * 60);
+		this.dy -= dxy[1] * (deltaTime * 60);
 
 		let v = [0, 0]; // movement vector
 		if (pressed["ArrowLeft"] || pressed["aq"[keys]]) v[0] -= 1;
@@ -249,15 +250,14 @@ class Player {
 		// avoid moving sqrt(2) times faster diagonally
 		let length = Math.sqrt(v[0]*v[0] + v[1]*v[1]);
 		if (length) {
-			this.dx += v[0] * this.speed / length;
-			this.dy += v[1] * this.speed / length;
-		}		
-		this.collideWall(); // possibly bounce off the walls
+			this.dx += v[0] * this.speed / length * deltaTime;
+			this.dy += v[1] * this.speed / length * deltaTime;
+		}
 
-		this.x += this.dx;
-		this.y += this.dy;
-		this.dx *= this.factor;
-		this.dy *= this.factor;
+		this.dx *= this.factor**(60*deltaTime);
+		this.dy *= this.factor**(60*deltaTime);
+		this.x += this.dx*deltaTime*60;
+		this.y += this.dy*deltaTime*60;
 	}
 
 	collideWall() {
@@ -312,7 +312,7 @@ class Player {
 							return;
 						}
 					}
-					else if (o[0] == "water") {
+					else if (o[0] == "water") { // change friction
 						if (this.collideObject(x * 50, y * 50, [50, 50], "rect")) this.factor = 0.955;
 					}
 				}
@@ -369,12 +369,18 @@ function initCanvas() {
 	canvas.height = H = map.h * 50;
 	ctx = canvas.getContext("2d");
 	
-	interval = setInterval(mainLoop, 1000/60);
+	interval = setInterval(mainLoop, 1000/maxFps); // fps limit
 }
 
 function changeKeys(change=true) {
 	if (change) keys = 1-keys;
-	keysSpan.innerHTML = ["wasd", "zqsd"][keys];
+	options[0].innerHTML = ["wasd", "zqsd"][keys];
+}
+
+function changeFps(change=true) {
+	let fps = [30, 60, 120, 1000];
+	if (change) maxFps = fps[(fps.indexOf(maxFps)+1) % 4];
+	options[1].innerHTML = maxFps == 1000 ? "inf" : maxFps;
 }
 
 function sum(l) {
@@ -402,7 +408,7 @@ function mainLoop() {
 		musicReady = 2;
 	}
 	if (prevTime == null) deltaTime = 0;
-	else deltaTime = (Date.now()-prev) / 1000;
+	else deltaTime = (Date.now()-prevTime) / 1000;
 	prevTime = Date.now();
 }
 
@@ -433,8 +439,11 @@ function init() {
 	infoDiv = document.getElementById("top-info");
 	msgDiv = document.getElementById("message");
 	timer = document.getElementById("timer");
-	keysSpan = document.getElementById("keys");
+	options = []
+	options.push(document.getElementById("keys"));
+	options.push(document.getElementById("fps"));
 	changeKeys(false);
+	changeFps(false);
 	divs = [];
 	["menu", "game", "win"].forEach((id) => { divs.push(document.getElementById(id)); });
 	
@@ -469,7 +478,7 @@ function init() {
 window.onkeyup = (e) => {pressed[e.key] = false};
 window.onkeydown = (e) => {pressed[e.key] = true};
 
-let ctx, W, H, gameDiv, infoDiv, msgDiv, divs, timer, keysSpan;
+let ctx, W, H, gameDiv, infoDiv, msgDiv, divs, timer, options;
 let map, player, interval;
 let tex = new TexHandler();
 
@@ -477,6 +486,7 @@ let pressed = {};
 let keys = 0; // 0: wasd, 1: zqsd
 
 let startTime, hasStarted;
+let maxFps = 60;
 let prevTime, deltaTime = 0;
 let level = 0;
 let deathCount = 0;
