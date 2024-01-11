@@ -242,10 +242,10 @@ class Player {
 		this.dy -= dxy[1];
 
 		let v = [0, 0]; // movement vector
-		if (pressed["ArrowLeft"]) v[0] -= 1;
-		if (pressed["ArrowRight"]) v[0] += 1;
-		if (pressed["ArrowUp"]) v[1] -= 1;
-		if (pressed["ArrowDown"]) v[1] += 1;
+		if (pressed["ArrowLeft"] || pressed["aq"[keys]]) v[0] -= 1;
+		if (pressed["ArrowRight"] || pressed["d"]) v[0] += 1;
+		if (pressed["ArrowUp"] || pressed["wz"[keys]]) v[1] -= 1;
+		if (pressed["ArrowDown"] || pressed["s"]) v[1] += 1;
 		// avoid moving sqrt(2) times faster diagonally
 		let length = Math.sqrt(v[0]*v[0] + v[1]*v[1]);
 		if (length) {
@@ -372,6 +372,11 @@ function initCanvas() {
 	interval = setInterval(mainLoop, 1000/60);
 }
 
+function changeKeys(change=true) {
+	if (change) keys = 1-keys;
+	keysSpan.innerHTML = ["wasd", "zqsd"][keys];
+}
+
 function sum(l) {
 	let x = 0;
 	for (let i = 0; i < l.length; i++) x += l[i];
@@ -399,7 +404,7 @@ function mainLoop() {
 }
 
 function startGame() {
-	if (!hasStarted) startTime = Date.now();
+	if (!hasStarted) startTime = Date.now()-10564562;
 	hasStarted = true;
 	divs[0].className = "hidden";
 	divs[1].className = "";
@@ -424,6 +429,8 @@ function init() {
 	infoDiv = document.getElementById("top-info");
 	msgDiv = document.getElementById("message");
 	timer = document.getElementById("timer");
+	keysSpan = document.getElementById("keys");
+	changeKeys(false);
 	divs = [];
 	["menu", "game", "win"].forEach((id) => { divs.push(document.getElementById(id)); });
 	
@@ -458,10 +465,11 @@ function init() {
 window.onkeyup = (e) => {pressed[e.key] = false};
 window.onkeydown = (e) => {pressed[e.key] = true};
 
-let ctx, W, H, gameDiv, infoDiv, msgDiv, divs, timer;
+let ctx, W, H, gameDiv, infoDiv, msgDiv, divs, timer, keysSpan;
 let map, player, interval;
 let pressed = {};
 let level = 0;
+let keys = 0; // 0: wasd, 1: zqsd
 let deathCount = 0;
 let tex = new TexHandler();
 let startTime, hasStarted;
