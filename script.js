@@ -15,6 +15,12 @@ let levels = [
 "17;12;0.4;8.7,11.4,5.4,8.1,14.1,14.7,2.1,2.7,11.10,5.10;2.10,14.10;8.10,11.7,14.4,11.1,8.4,5.1,5.7,2.4;;111111111111111110122100122100122101221001221001221111111111111111112100122100122100121001221001221001111111111111111110122100122100122101221001221001221111111111111111112100122100122100121001221001221001"
 ];
 
+function isInt(n) {
+	if (n.length != 4) return false;
+	for (let i = 0; i < 4; i++) if (n[i] != 0 && n[i] != 1) return false;
+	return true;
+}
+
 class TexHandler {
 	constructor() {
 		let names = ["coin", "cpInactive", "cpActive", "water"];
@@ -25,17 +31,69 @@ class TexHandler {
 		}
 		this.tex = {};
 		for (let i = 0; i < names.length; i++) {
-			let img = new Image("img");
-			img.src = "images/name.png".replace("name", names[i]);
-			this.tex[names[i]] = img;
+			if (debug && isInt(names[i])) {
+				let data = new Uint8ClampedArray(10000);
+				let a = names[i][0] == "1", b = names[i][1] == "1", c = names[i][2] == "1", d = names[i][3] == "1";
+				let j = 0;
+				for (let y = 0; y < 50; y++) {
+					let e = 205 * (a+(c-a)*y/50);
+					let f = 205 * (b+(d-b)*y/50);
+					for (let x = 0; x < 50; x++) {
+						let t = e + (f-e)*x/50;
+						let add = (Math.abs(x-25) > 20 && Math.abs(y-25) > 20) ? 50 : 0;
+						data[j++] = t + add;
+						data[j++] = t + add;
+						data[j++] = t;
+						data[j++] = 255;
+					}
+				}
+				
+				// create image object from pixel data asynchronously
+				this.tex[names[i]] = new ImageData(data, 50, 50);
+			}
+			else {
+				let img = new Image("img");
+				img.src = "images/name.png".replace("name", names[i]);
+				this.tex[names[i]] = img;
+			}
 		}
 	}
 
 	checkTextures() {
 		// check if all textures are loaded
+		if (debug) return true;
 		let keys = Object.keys(this.tex);
 		for (let i = 0; i < keys.length; i++) if (!this.tex[keys[i]].complete) return false;
 		return true;
+	}
+	
+	drawImage(name, x, y, height) {
+		if (debug && isInt(name)) {
+			if (name == "0000") {
+				let t = (height-map.min) / (map.max-map.min) * 100;
+				ctx.fillStyle = "rgb("+t+", "+t+", "+t+")";
+				ctx.fillRect(x * 50, y * 50, 50, 50);
+			}
+			else ctx.putImageData(this.tex[name], x * 50, y * 50);
+			
+		}
+		else ctx.drawImage(this.tex[name], x * 50, y * 50);
+
+		// additional debug info
+		if (debug) {
+			if (name == "coin" || name.startsWith("cp")) {
+				ctx.strokeStyle = "#00f";
+				ctx.beginPath();
+				ctx.rect(x*50 + 16.5, y*50 + 16.5, 18, 18);
+				ctx.stroke();
+			}
+			else if (name[0] == "l") {
+				ctx.strokeStyle = "#f00";
+				ctx.beginPath();
+				ctx.rect(x*50 + 0.5, y*50 + 0.5, 49, 49);
+				ctx.stroke();
+			}
+		}
 	}
 }
 
@@ -122,27 +180,27 @@ class Map {
 		points = this.getPoints(x, y);
 		min = Math.min(points[0], points[1], points[2], points[3]);
 		max = Math.max(points[0], points[1], points[2], points[3]);
-		if (min == max) ctx.drawImage(tex.tex["0000"], x * 50, y * 50);
+		if (min == max) tex.drawImage("0000", x, y, min);
 		else {
 			name = "";
 			for (let i = 0; i < 4; i++) {
 				name += Math.round((points[i]-min) / (max-min) + 0.1);
 			}
-			if (tex.tex[name] == undefined) ctx.drawImage(tex.tex["error"], x * 50, y * 50);
-			else ctx.drawImage(tex.tex[name], x * 50, y * 50);
+			if (tex.tex[name] == undefined) tex.drawImage(error, x, y);
+			else tex.drawImage(name, x, y);
 		}
 
 		// draw objects
 		for (let i = this.objects[y][x].length-1; i >= 0; i--) {
 			o = this.objects[y][x][i];
 			if (o[0] == "coin") {
-				if (!player.coins.includes(o[1])) ctx.drawImage(tex.tex["coin"], x * 50, y * 50);
+				if (!player.coins.includes(o[1])) tex.drawImage("coin", x, y);
 			} else if (o[0] == "cp") {
 				// draw checkpoint
-				if (player.cpId < o[1]) ctx.drawImage(tex.tex["cpInactive"], x * 50, y * 50);
-				else ctx.drawImage(tex.tex["cpActive"], x * 50, y * 50);
-			} else if (o[0][0] == "l") ctx.drawImage(tex.tex[o[0]], x * 50, y * 50);
-			else if (o[0] == "water") ctx.drawImage(tex.tex["water"], x * 50, y * 50);
+				if (player.cpId < o[1]) tex.drawImage("cpInactive", x, y);
+				else tex.drawImage("cpActive", x, y);
+			} else if (o[0][0] == "l") tex.drawImage(o[0], x, y);
+			else if (o[0] == "water") tex.drawImage("water", x, y);
 		}
 	}
 
@@ -289,9 +347,9 @@ class Player {
 				for (let i = 0; i < map.objects[y][x].length; i++) {
 					let o = map.objects[y][x][i];
 					if (o[0] == "coin") {
-						if (eq(pos, [x, y]) && !this.coins.includes(o[1])) this.coins.push(o[1]);
+						if (pos[0] == x && pos[1] == y && !this.coins.includes(o[1])) this.coins.push(o[1]);
 					} else if (o[0] == "cp") {
-						if (eq(pos, [x, y]) && this.cpId < o[1]) {
+						if (pos[0] == x && pos[1] == y && this.cpId < o[1]) {
 							if (o[1] == map.totalCp - 1) {
 								// end checkpoint: requires all coins to finish the level
 								if (this.coins.length == map.totalCoins) {
@@ -322,8 +380,8 @@ class Player {
 	draw(fade=0) {
 		let g = 38*Math.sqrt(this.dx*this.dx + this.dy*this.dy);
 		let a = 1-fade;
-		ctx.strokeStyle = "rgb(0, 0, 127, "+a+")";
-		ctx.fillStyle = "rgb(0, "+g+", 255, "+a+")";
+		ctx.strokeStyle = "rgba(0, 0, 127, "+a+")";
+		ctx.fillStyle = "rgba(0, "+g+", 255, "+a+")";
 		ctx.beginPath();
 		ctx.arc(this.x, this.y, 15, 0, 2 * Math.PI);
 		ctx.fill();
@@ -331,15 +389,8 @@ class Player {
 	}
 }
 
-function eq(l1, l2) {
-	// checks if two lists are equal
-	if (l1.length != l2.length) return false;
-	for (let i = 0; i < l1.length; i++) if (l1[i] != l2[i]) return false;
-	return true;
-}
-
 function updateTopDiv() {
-	infoDiv.innerHTML = "Death count: "+deathCount+" - Level: "+(level+1)+"/"+levels.length;
+	infoDiv.innerHTML = "Death count: "+deathCount+" - Level: "+(level+1)+"/"+levels.length+(developer || debug ? " (cheat mode)" : "");
 }
 
 function newLevel() {
@@ -488,15 +539,16 @@ function init() {
 	window.setInterval(setStyle, 1000);
 }
 
+let developer = false; // skip levels and disable button animations
+let debug = false; // shows explicit slope textures and hitboxes
+if (document.location.href.includes("github")) developer = false; // in case I forget
+
 window.onkeyup = (e) => {pressed[e.key] = false};
 window.onkeydown = (e) => {pressed[e.key] = true;};
 
 let ctx, W, H, gameDiv, infoDiv, msgDiv, divs, timer, options;
 let map, player, interval;
 let tex = new TexHandler();
-
-let developer = false; // debug/cheat mode
-if (document.location.href.includes("github")) developer = false; // in case I forget
 
 let pressed = {};
 let keys = 0; // 0: wasd, 1: zqsd
