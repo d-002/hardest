@@ -31,7 +31,8 @@ class TexHandler {
 		}
 		this.tex = {};
 		for (let i = 0; i < names.length; i++) {
-			if (debug && isInt(names[i])) {
+			if (developer && isInt(names[i])) {
+				// additional images in case debug mode is activated
 				let data = new Uint8ClampedArray(10000);
 				let a = names[i][0] == "1", b = names[i][1] == "1", c = names[i][2] == "1", d = names[i][3] == "1";
 				let j = 0;
@@ -49,21 +50,18 @@ class TexHandler {
 				}
 				
 				// create image object from pixel data asynchronously
-				this.tex[names[i]] = new ImageData(data, 50, 50);
+				this.tex["d"+names[i]] = new ImageData(data, 50, 50);
 			}
-			else {
-				let img = new Image("img");
-				img.src = "images/name.png".replace("name", names[i]);
-				this.tex[names[i]] = img;
-			}
+			let img = new Image("img");
+			img.src = "images/name.png".replace("name", names[i]);
+			this.tex[names[i]] = img;
 		}
 	}
 
 	checkTextures() {
 		// check if all textures are loaded
-		if (debug) return true;
 		let keys = Object.keys(this.tex);
-		for (let i = 0; i < keys.length; i++) if (!this.tex[keys[i]].complete) return false;
+		for (let i = 0; i < keys.length; i++) if (!this.tex[keys[i]].complete && keys[i][0] != "d") return false;
 		return true;
 	}
 	
@@ -74,7 +72,7 @@ class TexHandler {
 				ctx.fillStyle = "rgb("+t+", "+t+", "+t+")";
 				ctx.fillRect(x * 50, y * 50, 50, 50);
 			}
-			else ctx.putImageData(this.tex[name], x * 50, y * 50);
+			else ctx.putImageData(this.tex["d"+name], x * 50, y * 50);
 			
 		}
 		else ctx.drawImage(this.tex[name], x * 50, y * 50);
@@ -464,15 +462,22 @@ function mainLoop() {
 	if (prevTime == null) deltaTime = 0;
 	else deltaTime = (Date.now()-prevTime) / 1000;
 	prevTime = Date.now();
-	
-	if (developer && pressed["r"]) {
-		pressed["r"] = false;
-		level += 1;
-		newLevel();
-	}
-	if (developer && pressed["k"]) {
-		pressed["k"] = false;
-		player.hasDied = Date.now()-1000;
+
+	if (developer) {
+		if (pressed["r"]) {
+			pressed["r"] = false;
+			level += 1;
+			newLevel();
+		}
+		if (pressed["k"]) {
+			pressed["k"] = false;
+			player.hasDied = Date.now()-1000;
+		}
+		if (pressed["t"]) {
+			pressed["t"] = false;
+			map.mapDrawn = false;
+			debug = !debug;
+		}
 	}
 }
 
@@ -540,7 +545,7 @@ function init() {
 }
 
 let developer = false; // skip levels and disable button animations
-let debug = false; // shows explicit slope textures and hitboxes
+let debug = false; // shows explicit slope textures and hitboxes - only in developer mode
 if (document.location.href.includes("github")) developer = false; // in case I forget
 
 window.onkeyup = (e) => {pressed[e.key] = false};
