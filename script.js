@@ -366,6 +366,7 @@ class Player {
 					} else if (o[0][0] == "l") {
 						if (this.collideObject(x * 50, y * 50, [50, 50], "rect")) {
 							this.hasDied = Date.now();
+							if (sfxReady > 0) deathSound.play();
 							return;
 						}
 					}
@@ -516,12 +517,17 @@ function init() {
 	divs = [];
 	["menu", "game", "win"].forEach((id) => { divs.push(document.getElementById(id)); });
 	
-	// handle music
+	// handle music and sfx
 	music = document.createElement("audio");
-	music.src = "Around.mp3";
+	music.src = "music.mp3";
 	music.loop = true;
 	document.body.appendChild(music);
 	music.addEventListener("canplaythrough", () => {musicReady = 1});
+	
+	deathSound = document.createElement("audio");
+	deathSound.src = "punch.mp3";
+	document.body.appendChild(deathSound);
+	music.addEventListener("canplaythrough", () => {sfxReady = 1});
 	
 	// add links to github profiles
 	Array.from(document.getElementsByTagName("a")).forEach((a) => {
@@ -564,5 +570,5 @@ let prevTime, deltaTime = 0;
 let level = 0;
 let deathCount = 0;
 
-let music;
-let musicReady = 0;
+let music, deathSound;
+let musicReady = 0, sfxReady = 0;
