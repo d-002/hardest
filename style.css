@@ -83,6 +83,11 @@ a:not(.button):hover {
 	box-shadow: 0 0 50px #777;
 }
 
+.error {
+	color: red;
+	font-weight: bold;
+}
+
 h1 {
 	font-size: 50px;
 	font-weight: 100;

@@ -496,6 +496,7 @@ function stopGame() {
 	window.clearInterval(interval);
 	divs[0].className = "";
 	divs[1].className = "hidden";
+	clickCount = 0;
 	
 	// stop music
 	music.pause();
@@ -528,6 +529,21 @@ function init() {
 	deathSound.src = "punch.mp3";
 	document.body.appendChild(deathSound);
 	music.addEventListener("canplaythrough", () => {sfxReady = 1});
+	
+	// handle angry button
+	let button = document.getElementById("play");
+	document.getElementById("menu").addEventListener("click",  () => {
+		clickCount++;
+		if (clickCount == 10) {
+			button.style.display = "none";
+			button.nextElementSibling.style = "";
+			window.setTimeout(() => {
+				button.style = "";
+				button.nextElementSibling.style.display = "none";
+				clickCount = 0;
+			}, 10000);
+		}
+	});
 	
 	// add links to github profiles
 	Array.from(document.getElementsByTagName("a")).forEach((a) => {
@@ -572,3 +588,5 @@ let deathCount = 0;
 
 let music, deathSound;
 let musicReady = 0, sfxReady = 0;
+
+let clickCount = 0;
