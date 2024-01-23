@@ -366,7 +366,10 @@ class Player {
 					} else if (o[0][0] == "l") {
 						if (this.collideObject(x * 50, y * 50, [50, 50], "rect")) {
 							this.hasDied = Date.now();
-							if (sfxReady > 0) deathSound.play();
+							if (sfxReady > 0) {
+								deathSound.currentTime = 0;
+								deathSound.play();
+							}
 							return;
 						}
 					}
@@ -468,6 +471,8 @@ function mainLoop() {
 		if (pressed["r"]) {
 			pressed["r"] = false;
 			level += 1;
+			clearInterval(interval);
+			updateTopDiv();
 			newLevel();
 		}
 		if (pressed["k"]) {
@@ -534,7 +539,7 @@ function init() {
 	let button = document.getElementById("play");
 	document.getElementById("menu").addEventListener("click",  () => {
 		clickCount++;
-		if (clickCount == 10) {
+		if (clickCount >= 5) {
 			button.style.display = "none";
 			button.nextElementSibling.style = "";
 			window.setTimeout(() => {
