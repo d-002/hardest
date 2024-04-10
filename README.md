@@ -1,7 +1,9 @@
 # hardest
 Hardest game ever. Truly.
 
-This game is in Alpha, still in development. If you see any bugs or would like to contribute, feel free to post in [Issues](https://github.com/d-002/hardest/issues) or use the [level editor](https://github.com/d-002/hardest/tree/main/Level%20editor).
+> [!WARNING]\
+> This game is in **Alpha, still in development**.\
+> If you see any bugs or would like to contribute, feel free to post them in [Issues](https://github.com/d-002/hardest/issues) or use the [level editor](https://github.com/d-002/hardest/tree/main/Level%20editor).
 
 ## [Play the game now](https://d-002.github.io/hardest)
 
