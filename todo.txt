@@ -1,0 +1,13 @@
+fix level 2
+more introductory levels
+coin pickup sound
+occasional jumpscare on death
+fix music loop
+click at the right time to close level start popup (or straight up gambling?)
+
+fix bug:
+Uncaught TypeError: Failed to execute 'putImageData' on 'CanvasRenderingContext2D': parameter 1 is not of type 'ImageData'.
+    at TexHandler.drawImage (script.js?v=1.10.2:75:13)
+    at Map._draw (script.js?v=1.10.2:188:13)
+    at Map.draw (script.js?v=1.10.2:170:119)
+    at mainLoop (script.js?v=1.10.2:458:6)
